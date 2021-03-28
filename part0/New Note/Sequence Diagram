@@ -1,4 +1,4 @@
-browser->server: HTTP GET https://studies.cs.helsinki.fi/exampleapp/spa
+browser->server: HTTP POST https://studies.cs.helsinki.fi/exampleapp/new_note
 note over server:
 The server responds with HTTP status code 302. This is a URL redirect,
 with which the server asks the browser to do a new HTTP GET request
