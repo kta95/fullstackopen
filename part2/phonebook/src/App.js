@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import axios from 'axios'
 
 import PersonForm from './components/PersonForm'
 import Filter from './components/Filter'
 import Persons from './components/Person'
+import personService from './services/persons'
 
 const App = () => {
   const [ persons, setPersons ] = useState([]) 
@@ -13,11 +13,10 @@ const App = () => {
 
   useEffect(() => {
     console.log('Effect')
-    axios
-      .get('http://localhost:3001/persons').then(response => {
-        console.log('promise fulfilled')
-        console.log('data is ', response.data)
-        setPersons(response.data)
+    personService
+      .getAll()
+      .then(initialPerson => {
+        setPersons(initialPerson)
       })
   }, [])
 
@@ -37,26 +36,74 @@ const App = () => {
 
   const addPerson = (event) => {
     event.preventDefault()
-    let isIncluded = false;
-    for (let x in persons) {
-      console.log('isIncluded is ', isIncluded)
-      if (persons[x].name === newName) {
-        isIncluded = true;
+    let nameExisted = false;
+    let numberExisted = false;
+    let id = 0;
+    if ( newName !== '' && newNumber !== '') {
+      for (let x in persons) {
+        console.log('isIncluded is ', nameExisted, numberExisted)
+        if (persons[x].name === newName) {
+          id = persons[x].id;
+          if (persons[x].number === newNumber) {
+            numberExisted = true;
+          }
+          nameExisted = true;
+        }
+      } 
+      if (nameExisted && numberExisted){
+        alert(`${newName} is already added to phonebook`)
+      } else if (nameExisted) {
+        const person = persons.find(p => p.id === id);
+        const changePerson = { ...person, number: newNumber}
+        if(window.confirm(`${person.name} is already added to phonebook, replace the old number with a new one?`)) {
+          personService
+            .update(id, changePerson)
+            .then(returnPerson => {
+              setPersons(persons.map(person => person.id !== id ? person : returnPerson))
+              setNewName('')
+              setNewNumber('')
+            })
+            .catch(error => {
+              alert(
+                `the person '${person.name}' was already deleted from the server`
+              )
+              setPersons(persons.filter( p => p.id !== id))
+              }
+            )
+          }
+      } else {
+        const newPerson = {
+          name: newName ,
+          number: newNumber
+        }
+        personService
+          .create(newPerson)
+          .then(returnPerson => {
+            setPersons(persons.concat(returnPerson))
+            setNewName('')
+            setNewNumber('')
+          })   
       }
-    } 
-    if (isIncluded){
-      alert(`${newName} is already added to phonebook`)
     } else {
-      const newPerson = {
-        name: newName ,
-        number: newNumber
-      }
-      setPersons(persons.concat(newPerson))
+      alert (
+        `name and number cannot be empty!`
+      )
     }
-  setNewName('')
-  setNewNumber('')
+    
   }
-  
+  const handleDelete = (id, name) => {
+    console.log('id is', id)
+      if(window.confirm(`Delete ${name} ?`)) {
+        personService
+          .deletePerson(id)
+          .then( () => {
+            setPersons(persons.filter(person => person.id !== id))
+            }
+          )
+      
+      }
+  }
+  console.log('persons is', persons)
   const namesToShow = persons.filter(person => person.name.toLowerCase().includes(newFilterWord.toLowerCase()))
 
   return (
@@ -66,8 +113,11 @@ const App = () => {
       <h3>Add a new</h3>
       <PersonForm submitHandler={addPerson} newName={newName} newNum={newNumber} 
                   nameHandler={handleNameChange} numberHandler={handleNumberChange} />
-      <h3>Numbers</h3>        
-      <Persons names={namesToShow} />
+      <h3>Numbers</h3>    
+      {namesToShow.map((person) => 
+        <Persons key={person.id} person={person} 
+          deletePerson={() => handleDelete(person.id, person.name)} />
+      )}
     </div>
   )
 }

@@ -1,10 +1,11 @@
-const Persons = ({names}) => {
-    console.log('names', names)
+const Persons = ({person, deletePerson}) => {
+    console.log('names', person)
+    console.log('deletePer', deletePerson)
+    
     return (
-      <>
-      {names.map((person, index) => 
-        <div key={index}>{person.name} {person.number}</div>
-      )}
+      <>     
+      <div>{person.name} {person.number} <button onClick={deletePerson} >delete</button></div>
+      
       </>
     )
     
